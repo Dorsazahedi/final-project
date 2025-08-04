@@ -10,11 +10,6 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
 
-    services:
-      docker:
-        image: docker:dind
-        options: --privileged
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -24,11 +19,23 @@ jobs:
       with:
         python-version: 3.11
 
-    - name: Run tests (user service)
+    - name: Install dependencies and run tests - User Service
       run: |
         cd user-service
         pip install -r requirements.txt
         pytest user_test.py
+
+    - name: Install dependencies and run tests - Booking Service
+      run: |
+        cd ../booking-service
+        pip install -r requirements.txt
+        pytest booking-test.py
+
+    - name: Install dependencies and run tests - Notification Service
+      run: |
+        cd ../notification-service
+        pip install -r requirements.txt
+        pytest notification-test.py
 
     - name: Build Docker images
       run: |
@@ -37,8 +44,7 @@ jobs:
         docker build -t notification-service ./notification-service
         docker build -t order-service ./order-service
 
-    - name: Save Docker images as artifacts (optional)
-      if: always()
+    - name: Save Docker images as artifacts
       run: |
         mkdir -p docker-images
         docker save user-service > docker-images/user-service.tar
@@ -47,7 +53,7 @@ jobs:
         docker save order-service > docker-images/order-service.tar
 
     - name: Upload Docker images
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: docker-images
         path: docker-images/
