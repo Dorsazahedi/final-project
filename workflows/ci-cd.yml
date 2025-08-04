@@ -1,1 +1,54 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Run tests (user service)
+      run: |
+        cd user-service
+        pip install -r requirements.txt
+        pytest user_test.py
+
+    - name: Build Docker images
+      run: |
+        docker build -t user-service ./user-service
+        docker build -t booking-service ./booking-service
+        docker build -t notification-service ./notification-service
+        docker build -t order-service ./order-service
+
+    - name: Save Docker images as artifacts (optional)
+      if: always()
+      run: |
+        mkdir -p docker-images
+        docker save user-service > docker-images/user-service.tar
+        docker save booking-service > docker-images/booking-service.tar
+        docker save notification-service > docker-images/notification-service.tar
+        docker save order-service > docker-images/order-service.tar
+
+    - name: Upload Docker images
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-images
+        path: docker-images/
 
